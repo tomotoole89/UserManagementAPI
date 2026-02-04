@@ -1,21 +1,59 @@
 using FluentValidation;
+using Microsoft.OpenApi.Models;
 using System.ComponentModel.DataAnnotations;
+using UserManagementAPI.Middleware;
 using UserManagementAPI.Models;
 using UserManagementAPI.Repositories;
 using UserManagementAPI.Services;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 //builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();
-builder.Services.AddSwaggerGen();
+
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Enter a valid token",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
+
+
 
 builder.Services.AddScoped<IValidator<User>, UserValidator>();
 
 
 
 var app = builder.Build();
+
+//middleware registration order matters
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddleware<TokenValidationMiddleware>();
+app.UseMiddleware<RequestResponseLoggingMiddleware>();
+
 
 if (app.Environment.IsDevelopment())
 {
@@ -24,19 +62,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseExceptionHandler(errorApp =>
-{
-    errorApp.Run(async context =>
-    {
-        context.Response.StatusCode = 500;
-        context.Response.ContentType = "application/json";
 
-        await context.Response.WriteAsJsonAsync(new
-        {
-            message = "An unexpected error occurred."
-        });
-    });
-});
 
 
 app.MapGet("/", () => "User Management API is running!");
