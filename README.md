@@ -1,4 +1,4 @@
-Below is how copiot helped create this api.
+Below is how copilot helped create this api.
 
 It create the base structure with each of the crud endpoints. also created the repository and model files. helped get swagger workng when installed wrong package, as couldnt use postman.
 
